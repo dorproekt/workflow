@@ -1,7 +1,12 @@
 const express = require('express')
 const path = require('path')
+const csrf = require('csurf')
+const flash = require('connect-flash')
 const exphbs = require('express-handlebars')
 const mongoose = require('mongoose')
+const session = require('express-session')
+const MongoStore = require('connect-mongodb-session')(session)
+const varMiddleware = require('./middleware/variables')
 
 const app = express()
 
@@ -26,15 +31,38 @@ app.use(express.urlencoded({
 }))
 /* handlebars */
 
+
+/* session */
+const store = new MongoStore({
+    collection: 'sessions',
+    uri: url
+})
+
+app.use(session({
+    secret: 'some secret value',
+    resave: false,
+    saveUninitialized: false,
+    store
+}))
+
+app.use(csrf())
+app.use(flash())
+
+app.use(varMiddleware)
+/* session */
+
+
 /* routes */
 const homeRoutes = require('./routes/home')
+const authRoutes = require('./routes/auth')
 const testRoutes = require('./routes/test')
+
+app.use('/', homeRoutes)
+app.use('/auth', authRoutes)
+app.use('/', testRoutes)
 /* routes */ 
 
 const PORT = process.env.PORT || 4000
-
-app.use('/', homeRoutes)
-app.use('/', testRoutes)
 
 async function start(){
 
